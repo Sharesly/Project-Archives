@@ -1,0 +1,144 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: projects
+    // Document ID: auto-generated
+    // Fields:
+    //   - title: string (required, max 100 chars)
+    //   - description: string (optional, max 5000 chars)
+    //   - status: string (required, in ['Intake / Proposed', 'Scoping', 'In Progress', 'Pilot / Testing', 'Review / Approval', 'Launched'])
+    //   - priority: string (required, in ['High', 'Medium', 'Low'])
+    //   - tags: list of strings (optional, max 20 items, max 50 chars per item)
+    //   - dueDate: string (optional, max 20 chars)
+    //   - assignee: string (optional, max 100 chars)
+    //   - createdAt: timestamp (required, immutable)
+    //   - updatedAt: timestamp (required)
+    //
+    // Collection: users
+    // Document ID: user uid
+    // Fields:
+    //   - email: string (required, valid email)
+    //   - role: string (required, in ['admin', 'user'])
+    //   - createdAt: timestamp (required, immutable)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && (
+        (request.auth.token.email == "whuggins@law.stanford.edu" && request.auth.token.email_verified == true) ||
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin')
+      );
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function isValidEmail(email) {
+      return email is string && email.matches("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+    }
+
+    function areImmutableFieldsUnchanged(fields) {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(fields);
+    }
+
+    function isValidString(val, minLen, maxLen) {
+      return val is string && val.size() >= minLen && val.size() <= maxLen;
+    }
+
+    function isValidOptionalString(field, minLen, maxLen) {
+      return !(field in request.resource.data) || isValidString(request.resource.data[field], minLen, maxLen);
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+
+    function isValidProject(data) {
+      let allowedFields = ['title', 'description', 'status', 'priority', 'tags', 'dueDate', 'assignee', 'createdAt', 'updatedAt', 'code', 'owner', 'progress', 'department', 'preservationScore', 'riskFactor'];
+      return hasRequiredFields(['title', 'status', 'priority', 'createdAt', 'updatedAt', 'code', 'owner', 'progress', 'department', 'preservationScore', 'riskFactor']) &&
+             hasOnlyAllowedFields(allowedFields) &&
+             isValidString(data.title, 1, 100) &&
+             isValidOptionalString('description', 0, 5000) &&
+             data.status in ['Intake / Proposed', 'Scoping', 'In Progress', 'Pilot / Testing', 'Review / Approval', 'Launched'] &&
+             data.priority in ['High', 'Medium', 'Low'] &&
+             (!('tags' in data) || (data.tags is list && data.tags.size() <= 20)) &&
+             isValidOptionalString('dueDate', 0, 20) &&
+             isValidOptionalString('assignee', 0, 100) &&
+             data.createdAt is timestamp &&
+             data.updatedAt is timestamp &&
+             isValidString(data.code, 1, 50) &&
+             data.owner is map &&
+             data.owner.keys().hasAll(['name', 'initials']) &&
+             data.progress is number && data.progress >= 0 && data.progress <= 100 &&
+             isValidString(data.department, 1, 100) &&
+             data.preservationScore is number &&
+             isValidString(data.riskFactor, 1, 50);
+    }
+
+    function isValidUser(data) {
+      let allowedFields = ['email', 'role', 'createdAt'];
+      return hasRequiredFields(allowedFields) &&
+             hasOnlyAllowedFields(allowedFields) &&
+             isValidEmail(data.email) &&
+             data.role in ['admin', 'user'] &&
+             data.createdAt is timestamp;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /projects/{projectId} {
+      // Anyone can read projects (for public dashboard)
+      allow read: if true;
+      
+      // Only admins can create, update, delete projects
+      allow create: if isAdmin() && isValidProject(request.resource.data);
+      allow update: if isAdmin() && isValidProject(request.resource.data) && areImmutableFieldsUnchanged(['createdAt']);
+      allow delete: if isAdmin();
+    }
+
+    match /users/{userId} {
+      // Users can read their own profile, admins can read all
+      allow read: if isOwner(userId) || isAdmin();
+      
+      // Admins can create users, or users can create their own profile (but not as admin unless they are the bootstrap admin)
+      allow create: if isAuthenticated() && isValidUser(request.resource.data) && (
+        isAdmin() || 
+        (isOwner(userId) && request.resource.data.role == 'user') ||
+        (isOwner(userId) && request.resource.data.role == 'admin' && request.auth.token.email == "whuggins@law.stanford.edu" && request.auth.token.email_verified == true)
+      );
+      
+      // Admins can update users, or users can update their own profile (but cannot change role)
+      allow update: if isAuthenticated() && isValidUser(request.resource.data) && areImmutableFieldsUnchanged(['createdAt']) && (
+        isAdmin() || 
+        (isOwner(userId) && areImmutableFieldsUnchanged(['role']))
+      );
+      
+      allow delete: if isAdmin();
+    }
+  }
+}

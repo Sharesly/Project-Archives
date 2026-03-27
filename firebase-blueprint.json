@@ -1,0 +1,88 @@
+{
+  "entities": {
+    "Project": {
+      "title": "Project",
+      "description": "A project in the Kanban board.",
+      "type": "object",
+      "properties": {
+        "title": {
+          "type": "string",
+          "description": "The title of the project."
+        },
+        "description": {
+          "type": "string",
+          "description": "The description of the project."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["Intake / Proposed", "Active", "Launched"],
+          "description": "The current status of the project."
+        },
+        "priority": {
+          "type": "string",
+          "enum": ["High", "Medium", "Low"],
+          "description": "The priority of the project."
+        },
+        "tags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Tags associated with the project."
+        },
+        "dueDate": {
+          "type": "string",
+          "description": "The due date of the project (YYYY-MM-DD)."
+        },
+        "assignee": {
+          "type": "string",
+          "description": "The person assigned to the project."
+        },
+        "createdAt": {
+          "type": "timestamp",
+          "description": "When the project was created."
+        },
+        "updatedAt": {
+          "type": "timestamp",
+          "description": "When the project was last updated."
+        }
+      },
+      "required": ["title", "status", "priority", "createdAt", "updatedAt"]
+    },
+    "User": {
+      "title": "User",
+      "description": "A user of the application.",
+      "type": "object",
+      "properties": {
+        "email": {
+          "type": "string",
+          "description": "The user's email address."
+        },
+        "role": {
+          "type": "string",
+          "enum": ["admin", "user"],
+          "description": "The user's role."
+        },
+        "createdAt": {
+          "type": "timestamp",
+          "description": "When the user was created."
+        }
+      },
+      "required": ["email", "role", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/projects/{projectId}": {
+      "schema": {
+        "$ref": "#/entities/Project"
+      },
+      "description": "The collection of all projects."
+    },
+    "/users/{userId}": {
+      "schema": {
+        "$ref": "#/entities/User"
+      },
+      "description": "The collection of users."
+    }
+  }
+}
