@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FolderArchive, LogIn } from 'lucide-react';
-import { signInWithPopup, GoogleAuthProvider } from 'firebase/auth';
+import { signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import { APP_CONFIG } from '../config';
 
@@ -15,7 +15,21 @@ export default function LoginView() {
     setError('');
     try {
       const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
+      const allowedDomain = import.meta.env.VITE_ALLOWED_DOMAIN;
+      
+      if (allowedDomain) {
+        provider.setCustomParameters({
+          hd: allowedDomain
+        });
+      }
+
+      const result = await signInWithPopup(auth, provider);
+      
+      if (allowedDomain && result.user.email && !result.user.email.endsWith(`@${allowedDomain}`)) {
+        await signOut(auth);
+        throw new Error(`Access restricted to @${allowedDomain} accounts.`);
+      }
+
       navigate('/app');
     } catch (err: any) {
       console.error('Login failed:', err);

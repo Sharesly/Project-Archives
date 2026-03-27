@@ -64,6 +64,9 @@ VITE_FIREBASE_AUTH_DOMAIN=YOUR_AUTH_DOMAIN
 VITE_FIREBASE_DATABASE_ID=(default)
 VITE_FIREBASE_STORAGE_BUCKET=YOUR_STORAGE_BUCKET
 VITE_FIREBASE_MESSAGING_SENDER_ID=YOUR_MESSAGING_SENDER_ID
+
+# Optional: Restrict team login to a specific domain (e.g., yourcompany.com)
+VITE_ALLOWED_DOMAIN=yourcompany.com
 ```
 
 *(Note: The `firebase-applet-config.json` file is ignored by Git to prevent accidentally committing your API keys to GitHub. The application is configured to read from these `.env` variables first.)*
@@ -106,6 +109,14 @@ Open `src/index.css` and modify the CSS variables under the `BRANDING CONFIGURAT
 }
 ```
 
+## Restricting Team Login Domain
+
+To ensure that only users from your organization can access the internal dashboard, you can restrict the Google Sign-In to a specific domain (e.g., `law.stanford.edu`).
+
+1. Set the `VITE_ALLOWED_DOMAIN` environment variable in your `.env` file (and in Vercel).
+2. The login screen will automatically prompt Google to only allow accounts from that domain.
+3. If a user bypasses the UI and logs in with a different domain, the application will immediately sign them out and show an error message.
+
 ## Bootstrapping the First Admin
 
 By default, the Firestore security rules restrict project creation and modification to **Admins**. 
@@ -136,6 +147,7 @@ The easiest way to deploy this application is using [Vercel](https://vercel.com)
    - `VITE_FIREBASE_DATABASE_ID`
    - `VITE_FIREBASE_STORAGE_BUCKET`
    - `VITE_FIREBASE_MESSAGING_SENDER_ID`
+   - `VITE_ALLOWED_DOMAIN` (Optional: e.g., yourcompany.com)
 6. Click **Deploy**.
 
 **Important Post-Deployment Step:** Once Vercel provides your live production URL (e.g., `https://your-app.vercel.app`), you must add this domain to your Firebase Authentication **Authorized domains** list in the Firebase Console (under Authentication > Settings > Authorized domains) so that Google Sign-In works correctly.

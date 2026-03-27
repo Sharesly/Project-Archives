@@ -6,7 +6,7 @@
 import React, { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from './lib/firebase';
 import Sidebar from './components/Sidebar';
 import Topbar from './components/Topbar';
@@ -141,8 +141,18 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      setIsAuthenticated(!!user);
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        const allowedDomain = import.meta.env.VITE_ALLOWED_DOMAIN;
+        if (allowedDomain && user.email && !user.email.endsWith(`@${allowedDomain}`)) {
+          await signOut(auth);
+          setIsAuthenticated(false);
+        } else {
+          setIsAuthenticated(true);
+        }
+      } else {
+        setIsAuthenticated(false);
+      }
       setIsLoading(false);
     });
     return () => unsubscribe();
