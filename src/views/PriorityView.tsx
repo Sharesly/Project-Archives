@@ -1,9 +1,16 @@
-import { ArrowUpDown, Clock, FileText, CheckCircle2, MoreHorizontal, History, CloudCheck, Brain, ArrowRight } from 'lucide-react';
+import { ArrowUpDown, Clock, FileText, CheckCircle2, MoreHorizontal, History, Brain } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { Project } from '../types';
+import { APP_CONFIG } from '../config';
 
-export default function PriorityView({ onProjectClick, refreshTrigger }: { onProjectClick: (id: string) => void, refreshTrigger?: number }) {
+interface PriorityViewProps {
+  onProjectClick: (id: string) => void;
+  refreshTrigger?: number;
+  searchQuery?: string;
+}
+
+export default function PriorityView({ onProjectClick, refreshTrigger, searchQuery = '' }: PriorityViewProps) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeSort, setActiveSort] = useState<'priority' | 'owner' | 'category'>('priority');
@@ -25,6 +32,18 @@ export default function PriorityView({ onProjectClick, refreshTrigger }: { onPro
   if (loading) return <div className="p-10">Loading priorities...</div>;
 
   let sortedProjects = [...projects];
+
+  // Apply search filter
+  if (searchQuery) {
+    const q = searchQuery.toLowerCase();
+    sortedProjects = sortedProjects.filter(p =>
+      p.title.toLowerCase().includes(q) ||
+      p.code.toLowerCase().includes(q) ||
+      p.owner.name.toLowerCase().includes(q) ||
+      p.department.toLowerCase().includes(q)
+    );
+  }
+
   if (activeSort === 'owner') {
     sortedProjects.sort((a, b) => a.owner.name.localeCompare(b.owner.name));
   } else if (activeSort === 'category') {
@@ -40,23 +59,23 @@ export default function PriorityView({ onProjectClick, refreshTrigger }: { onPro
       <header className="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
           <h1 className="font-headline text-4xl font-extrabold text-on-surface tracking-tight mb-2">Priority View</h1>
-          <p className="text-on-surface-variant font-body max-w-xl">Organize the digital stack by urgency. Use the triage levels to manage librarian focus and AI processing resources.</p>
+          <p className="text-on-surface-variant font-body max-w-xl">Organize {APP_CONFIG.projectLabelPlural.toLowerCase()} by urgency. Use the triage levels to focus team resources.</p>
         </div>
         <div className="flex items-center gap-3 bg-surface-container-low p-1 rounded-xl">
-          <button 
+          <button
             onClick={() => setActiveSort('priority')}
             className={`px-4 py-2 shadow-sm rounded-lg text-sm font-semibold flex items-center gap-2 transition-all ${activeSort === 'priority' ? 'bg-white text-primary' : 'hover:bg-white/50 text-on-surface-variant'}`}
           >
             <ArrowUpDown className="w-4 h-4" />
             Priority
           </button>
-          <button 
+          <button
             onClick={() => setActiveSort('owner')}
             className={`px-4 py-2 shadow-sm rounded-lg text-sm font-semibold flex items-center gap-2 transition-all ${activeSort === 'owner' ? 'bg-white text-primary' : 'hover:bg-white/50 text-on-surface-variant'}`}
           >
             Owner
           </button>
-          <button 
+          <button
             onClick={() => setActiveSort('category')}
             className={`px-4 py-2 shadow-sm rounded-lg text-sm font-semibold flex items-center gap-2 transition-all ${activeSort === 'category' ? 'bg-white text-primary' : 'hover:bg-white/50 text-on-surface-variant'}`}
           >
@@ -75,8 +94,8 @@ export default function PriorityView({ onProjectClick, refreshTrigger }: { onPro
           </div>
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {highPriority.map((project, index) => (
-              <div 
-                key={project.id} 
+              <div
+                key={project.id}
                 onClick={() => onProjectClick(project.id)}
                 className={`bg-surface-container-lowest p-5 rounded-xl shadow-[0_8px_32px_rgba(25,28,30,0.04)] border border-transparent hover:border-primary/10 transition-all cursor-pointer group ${index === 0 ? '' : 'lg:col-span-2 flex flex-col md:flex-row gap-6'}`}
               >
@@ -126,7 +145,7 @@ export default function PriorityView({ onProjectClick, refreshTrigger }: { onPro
               </div>
             ))}
             {highPriority.length === 0 && (
-              <div className="col-span-3 text-center py-10 text-on-surface-variant">No high priority projects.</div>
+              <div className="col-span-3 text-center py-10 text-on-surface-variant">No high priority {APP_CONFIG.projectLabelPlural.toLowerCase()}.</div>
             )}
           </div>
         </section>
@@ -142,8 +161,8 @@ export default function PriorityView({ onProjectClick, refreshTrigger }: { onPro
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-surface-container-low/50">
-                  <th className="px-6 py-4 text-[11px] font-bold text-on-surface-variant uppercase tracking-widest font-label">Archive Project</th>
-                  <th className="px-6 py-4 text-[11px] font-bold text-on-surface-variant uppercase tracking-widest font-label">Owner</th>
+                  <th className="px-6 py-4 text-[11px] font-bold text-on-surface-variant uppercase tracking-widest font-label">{APP_CONFIG.projectLabel}</th>
+                  <th className="px-6 py-4 text-[11px] font-bold text-on-surface-variant uppercase tracking-widest font-label">{APP_CONFIG.ownerLabel}</th>
                   <th className="px-6 py-4 text-[11px] font-bold text-on-surface-variant uppercase tracking-widest font-label">Status</th>
                   <th className="px-6 py-4 text-[11px] font-bold text-on-surface-variant uppercase tracking-widest font-label">Health</th>
                   <th className="px-6 py-4"></th>
@@ -166,7 +185,6 @@ export default function PriorityView({ onProjectClick, refreshTrigger }: { onPro
                     </td>
                     <td className="px-6 py-4">
                       <span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase ${
-                        project.status === 'In Curation' ? 'bg-surface-container-high text-secondary' :
                         project.status === 'Launched' ? 'bg-tertiary-container text-tertiary-fixed' :
                         'bg-surface-container-low text-on-surface-variant'
                       }`}>{project.status}</span>
@@ -177,13 +195,13 @@ export default function PriorityView({ onProjectClick, refreshTrigger }: { onPro
                       </div>
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <button className="text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity"><MoreHorizontal className="w-5 h-5" /></button>
+                      <button className="text-on-surface-variant opacity-0 group-hover:opacity-100 transition-opacity" aria-label="More options"><MoreHorizontal className="w-5 h-5" /></button>
                     </td>
                   </tr>
                 ))}
                 {mediumPriority.length === 0 && (
                   <tr>
-                    <td colSpan={5} className="px-6 py-10 text-center text-on-surface-variant">No medium priority projects.</td>
+                    <td colSpan={5} className="px-6 py-10 text-center text-on-surface-variant">No medium priority {APP_CONFIG.projectLabelPlural.toLowerCase()}.</td>
                   </tr>
                 )}
               </tbody>
@@ -200,8 +218,8 @@ export default function PriorityView({ onProjectClick, refreshTrigger }: { onPro
           </div>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             {lowPriority.map((project, index) => (
-              <div 
-                key={project.id} 
+              <div
+                key={project.id}
                 onClick={() => onProjectClick(project.id)}
                 className={`p-5 rounded-xl border border-outline-variant/20 group cursor-pointer hover:border-primary/30 transition-colors ${
                   index % 3 === 2 ? 'md:col-span-2 bg-primary text-white flex items-center justify-between relative overflow-hidden' : 'md:col-span-1 bg-surface-container-low/40'
@@ -226,7 +244,7 @@ export default function PriorityView({ onProjectClick, refreshTrigger }: { onPro
               </div>
             ))}
             {lowPriority.length === 0 && (
-              <div className="col-span-4 text-center py-10 text-on-surface-variant">No low priority projects.</div>
+              <div className="col-span-4 text-center py-10 text-on-surface-variant">No low priority {APP_CONFIG.projectLabelPlural.toLowerCase()}.</div>
             )}
           </div>
         </section>

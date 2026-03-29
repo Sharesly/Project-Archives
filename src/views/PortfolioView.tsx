@@ -1,12 +1,21 @@
-import { Database, AlertTriangle, PieChart, TrendingUp, BookOpen, Cloud, Microscope } from 'lucide-react';
+import { Database, AlertTriangle, PieChart, TrendingUp, BookOpen } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { Metrics, Project } from '../types';
+import { APP_CONFIG } from '../config';
+import { useToast } from '../components/Toast';
 
-export default function PortfolioView({ onProjectClick, refreshTrigger }: { onProjectClick: (id: string) => void, refreshTrigger?: number }) {
+interface PortfolioViewProps {
+  onProjectClick: (id: string) => void;
+  refreshTrigger?: number;
+  searchQuery?: string;
+}
+
+export default function PortfolioView({ onProjectClick, refreshTrigger, searchQuery = '' }: PortfolioViewProps) {
   const [metrics, setMetrics] = useState<Metrics | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
+  const { showToast } = useToast();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -18,7 +27,7 @@ export default function PortfolioView({ onProjectClick, refreshTrigger }: { onPr
         setMetrics(metricsData);
         setProjects(projectsData);
       } catch (error) {
-        console.error(error);
+        showToast('Failed to load portfolio data', 'error');
       } finally {
         setLoading(false);
       }
@@ -28,30 +37,56 @@ export default function PortfolioView({ onProjectClick, refreshTrigger }: { onPr
 
   if (loading || !metrics) return <div className="p-10">Loading portfolio data...</div>;
 
+  const filteredProjects = searchQuery
+    ? projects.filter(p => {
+        const q = searchQuery.toLowerCase();
+        return p.title.toLowerCase().includes(q) || p.owner.name.toLowerCase().includes(q) || p.department.toLowerCase().includes(q);
+      })
+    : projects;
+
+  const handleExport = () => {
+    const csvHeader = 'Title,Status,Priority,Owner,Department,Progress,Risk Factor,Health Score\n';
+    const csvRows = projects.map(p =>
+      `"${p.title}","${p.status}","${p.priority}","${p.owner.name}","${p.department}",${p.progress},"${p.riskFactor}",${p.healthScore}`
+    ).join('\n');
+    const blob = new Blob([csvHeader + csvRows], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${APP_CONFIG.appName.toLowerCase().replace(/\s+/g, '-')}-export-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('Report exported as CSV', 'success');
+  };
+
   return (
     <div className="p-10 space-y-10 max-w-7xl mx-auto">
       <section>
         <div className="flex items-end justify-between mb-6">
           <div className="space-y-1">
             <h2 className="font-headline text-3xl font-extrabold tracking-tight text-on-surface">Portfolio Overview</h2>
-            <p className="text-on-surface-variant text-sm">Curation analytics across all active research departments.</p>
+            <p className="text-on-surface-variant text-sm">Analytics across all active {APP_CONFIG.departmentLabel.toLowerCase()}s.</p>
           </div>
           <div className="flex gap-2">
-            <button className="px-4 py-2 bg-surface-container-lowest text-primary text-xs font-bold rounded border border-outline-variant/20 hover:bg-surface-container-low transition-colors">Export Report</button>
-            <button className="px-4 py-2 bg-gradient-to-b from-primary to-primary-container text-white text-xs font-bold rounded hover:opacity-90 transition-opacity">Update Suite</button>
+            <button
+              onClick={handleExport}
+              className="px-4 py-2 bg-surface-container-lowest text-primary text-xs font-bold rounded border border-outline-variant/20 hover:bg-surface-container-low transition-colors"
+            >
+              Export Report
+            </button>
           </div>
         </div>
-        
+
         <div className="grid grid-cols-12 gap-6">
           <div className="col-span-12 md:col-span-3 bg-surface-container-lowest p-6 rounded shadow-sm border border-outline-variant/10">
             <div className="flex items-center justify-between mb-4">
-              <span className="text-xs font-bold tracking-widest uppercase text-on-secondary-container">Total Records</span>
+              <span className="text-xs font-bold tracking-widest uppercase text-on-secondary-container">Total {APP_CONFIG.projectLabelPlural}</span>
               <Database className="w-5 h-5 text-primary" />
             </div>
             <div className="text-4xl font-headline font-black text-primary">{metrics.totalRecords}</div>
             <div className="mt-2 text-xs font-medium text-on-tertiary-container flex items-center gap-1">
               <TrendingUp className="w-3 h-3" />
-              12% from last quarter
+              Portfolio summary
             </div>
           </div>
 
@@ -61,12 +96,12 @@ export default function PortfolioView({ onProjectClick, refreshTrigger }: { onPr
               <AlertTriangle className="w-5 h-5 text-error" />
             </div>
             <div className="text-4xl font-headline font-black text-on-surface">{metrics.riskLevel}</div>
-            <div className="mt-2 text-xs font-medium text-on-surface-variant">2 critical milestones pending</div>
+            <div className="mt-2 text-xs font-medium text-on-surface-variant">Overall portfolio risk</div>
           </div>
 
           <div className="col-span-12 md:col-span-6 bg-surface-container-lowest p-6 rounded shadow-sm border border-outline-variant/10 relative overflow-hidden">
             <div className="flex items-center justify-between mb-6">
-              <span className="text-xs font-bold tracking-widest uppercase text-on-secondary-container">Projects by Status</span>
+              <span className="text-xs font-bold tracking-widest uppercase text-on-secondary-container">{APP_CONFIG.projectLabelPlural} by Status</span>
               <PieChart className="w-5 h-5 text-on-surface-variant" />
             </div>
             <div className="flex items-center gap-8">
@@ -100,20 +135,20 @@ export default function PortfolioView({ onProjectClick, refreshTrigger }: { onPr
       <section className="space-y-6">
         <div className="space-y-1">
           <h2 className="font-headline text-3xl font-extrabold tracking-tight text-on-surface">Metric Summary</h2>
-          <p className="text-on-surface-variant text-sm">Detailed performance and risk evaluation per project stream.</p>
+          <p className="text-on-surface-variant text-sm">Detailed performance and risk evaluation per {APP_CONFIG.projectLabel.toLowerCase()}.</p>
         </div>
         <div className="bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/10 overflow-hidden">
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-surface-container-low/50">
-                <th className="p-4 text-xs font-bold text-on-secondary-container uppercase tracking-widest">Project Name</th>
+                <th className="p-4 text-xs font-bold text-on-secondary-container uppercase tracking-widest">{APP_CONFIG.projectLabel} Name</th>
                 <th className="p-4 text-xs font-bold text-on-secondary-container uppercase tracking-widest">Risk Factor</th>
                 <th className="p-4 text-xs font-bold text-on-secondary-container uppercase tracking-widest">Completion</th>
-                <th className="p-4 text-xs font-bold text-on-secondary-container uppercase tracking-widest text-right">Preservation Score</th>
+                <th className="p-4 text-xs font-bold text-on-secondary-container uppercase tracking-widest text-right">{APP_CONFIG.healthScoreLabel}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-outline-variant/5">
-              {projects.map(project => (
+              {filteredProjects.map(project => (
                 <tr key={project.id} onClick={() => onProjectClick(project.id)} className="hover:bg-surface-container-low transition-colors cursor-pointer">
                   <td className="p-4">
                     <div className="flex items-center gap-3">
@@ -122,7 +157,7 @@ export default function PortfolioView({ onProjectClick, refreshTrigger }: { onPr
                       </div>
                       <div>
                         <div className="text-sm font-bold text-on-surface leading-none">{project.title}</div>
-                        <div className="text-[10px] text-on-surface-variant">Archivist: {project.owner.name}</div>
+                        <div className="text-[10px] text-on-surface-variant">{APP_CONFIG.ownerLabel}: {project.owner.name}</div>
                       </div>
                     </div>
                   </td>
@@ -141,7 +176,7 @@ export default function PortfolioView({ onProjectClick, refreshTrigger }: { onPr
                     </div>
                   </td>
                   <td className="p-4 text-right">
-                    <span className="text-sm font-black text-on-surface">{project.preservationScore.toFixed(1)}</span>
+                    <span className="text-sm font-black text-on-surface">{project.healthScore?.toFixed(1) ?? '—'}</span>
                   </td>
                 </tr>
               ))}

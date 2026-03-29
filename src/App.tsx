@@ -8,6 +8,8 @@ import { X } from 'lucide-react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from './lib/firebase';
+import { APP_CONFIG, PROJECT_STATUSES, PRIORITY_LEVELS } from './config';
+import { ToastProvider, useToast } from './components/Toast';
 import Sidebar from './components/Sidebar';
 import Topbar from './components/Topbar';
 import KanbanView from './views/KanbanView';
@@ -24,6 +26,8 @@ function InternalApp() {
   const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
   const [newProjectTitle, setNewProjectTitle] = useState('');
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [searchQuery, setSearchQuery] = useState('');
+  const { showToast } = useToast();
 
   const handleProjectClick = (id: string) => {
     setSelectedProjectId(id);
@@ -35,37 +39,42 @@ function InternalApp() {
     try {
       await api.createProject({
         title: newProjectTitle,
-        description: 'New project description',
-        status: 'Intake / Proposed',
-        priority: 'Medium',
-        owner: { name: auth.currentUser?.displayName || 'Current User', initials: auth.currentUser?.displayName?.substring(0, 2).toUpperCase() || 'CU', avatar: auth.currentUser?.photoURL || '' },
+        description: '',
+        status: PROJECT_STATUSES[0],
+        priority: PRIORITY_LEVELS[1],
+        owner: {
+          name: auth.currentUser?.displayName || 'Current User',
+          initials: auth.currentUser?.displayName?.substring(0, 2).toUpperCase() || 'CU',
+          avatar: auth.currentUser?.photoURL || ''
+        },
         tags: [],
         progress: 0,
         department: 'General',
         riskFactor: 'Low',
-        preservationScore: 0
+        healthScore: 0
       });
       setIsNewProjectModalOpen(false);
       setNewProjectTitle('');
       setRefreshTrigger(prev => prev + 1);
       setCurrentView('kanban');
+      showToast(`${APP_CONFIG.projectLabel} created successfully`, 'success');
     } catch (error) {
-      console.error('Failed to create project:', error);
+      showToast(`Failed to create ${APP_CONFIG.projectLabel.toLowerCase()}`, 'error');
     }
   };
 
   const renderView = () => {
     switch (currentView) {
       case 'kanban':
-        return <KanbanView onProjectClick={handleProjectClick} onNewProject={() => setIsNewProjectModalOpen(true)} refreshTrigger={refreshTrigger} />;
+        return <KanbanView onProjectClick={handleProjectClick} onNewProject={() => setIsNewProjectModalOpen(true)} refreshTrigger={refreshTrigger} searchQuery={searchQuery} />;
       case 'priority':
-        return <PriorityView onProjectClick={handleProjectClick} refreshTrigger={refreshTrigger} />;
+        return <PriorityView onProjectClick={handleProjectClick} refreshTrigger={refreshTrigger} searchQuery={searchQuery} />;
       case 'portfolio':
-        return <PortfolioView onProjectClick={handleProjectClick} refreshTrigger={refreshTrigger} />;
+        return <PortfolioView onProjectClick={handleProjectClick} refreshTrigger={refreshTrigger} searchQuery={searchQuery} />;
       case 'record':
-        return <RecordView projectId={selectedProjectId} onBack={() => setCurrentView('kanban')} />;
+        return <RecordView projectId={selectedProjectId} onBack={() => { setCurrentView('kanban'); setRefreshTrigger(prev => prev + 1); }} />;
       default:
-        return <KanbanView onProjectClick={handleProjectClick} onNewProject={() => setIsNewProjectModalOpen(true)} refreshTrigger={refreshTrigger} />;
+        return <KanbanView onProjectClick={handleProjectClick} onNewProject={() => setIsNewProjectModalOpen(true)} refreshTrigger={refreshTrigger} searchQuery={searchQuery} />;
     }
   };
 
@@ -73,7 +82,7 @@ function InternalApp() {
     <div className="flex min-h-screen bg-surface text-on-surface font-body">
       <Sidebar currentView={currentView} setCurrentView={setCurrentView} onNewProject={() => setIsNewProjectModalOpen(true)} />
       <div className="flex-1 ml-64 flex flex-col">
-        <Topbar />
+        <Topbar searchQuery={searchQuery} onSearchChange={setSearchQuery} />
         <main className="flex-1 relative">
           {renderView()}
         </main>
@@ -84,39 +93,41 @@ function InternalApp() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
           <div className="bg-surface-container-lowest w-full max-w-md rounded-xl shadow-2xl overflow-hidden">
             <div className="flex justify-between items-center p-6 border-b border-outline-variant/20">
-              <h3 className="font-headline text-xl font-bold text-on-surface">Create New Project</h3>
-              <button 
+              <h3 className="font-headline text-xl font-bold text-on-surface">Create New {APP_CONFIG.projectLabel}</h3>
+              <button
                 onClick={() => setIsNewProjectModalOpen(false)}
                 className="text-on-surface-variant hover:text-on-surface transition-colors"
+                aria-label="Close modal"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
             <div className="p-6">
-              <label className="block text-sm font-bold text-on-surface-variant mb-2">Project Title</label>
-              <input 
-                type="text" 
+              <label htmlFor="new-project-title" className="block text-sm font-bold text-on-surface-variant mb-2">{APP_CONFIG.projectLabel} Title</label>
+              <input
+                id="new-project-title"
+                type="text"
                 autoFocus
                 value={newProjectTitle}
                 onChange={(e) => setNewProjectTitle(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleNewProject()}
                 className="w-full bg-surface-container-low border border-outline-variant/30 rounded-lg p-3 focus:ring-2 focus:ring-primary outline-none"
-                placeholder="e.g., Semantic Search for Archives"
+                placeholder="e.g., Website Redesign"
               />
             </div>
             <div className="p-6 bg-surface-container-low flex justify-end gap-3 border-t border-outline-variant/20">
-              <button 
+              <button
                 onClick={() => setIsNewProjectModalOpen(false)}
                 className="px-4 py-2 text-sm font-bold text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-colors"
               >
                 Cancel
               </button>
-              <button 
+              <button
                 onClick={handleNewProject}
                 disabled={!newProjectTitle.trim()}
                 className="px-6 py-2 text-sm font-bold bg-primary text-white rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                Create Project
+                Create {APP_CONFIG.projectLabel}
               </button>
             </div>
           </div>
@@ -159,20 +170,22 @@ export default function App() {
   }, []);
 
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<PublicView />} />
-        <Route path="/login" element={<LoginView />} />
-        <Route 
-          path="/app/*" 
-          element={
-            <ProtectedRoute isAuthenticated={isAuthenticated} isLoading={isLoading}>
-              <InternalApp />
-            </ProtectedRoute>
-          } 
-        />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </BrowserRouter>
+    <ToastProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<PublicView />} />
+          <Route path="/login" element={<LoginView />} />
+          <Route
+            path="/app/*"
+            element={
+              <ProtectedRoute isAuthenticated={isAuthenticated} isLoading={isLoading}>
+                <InternalApp />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </BrowserRouter>
+    </ToastProvider>
   );
 }

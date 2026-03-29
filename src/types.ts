@@ -1,5 +1,12 @@
-export type ProjectStatus = 'Intake / Proposed' | 'Scoping' | 'In Progress' | 'Pilot / Testing' | 'Review / Approval' | 'Launched';
-export type ProjectPriority = 'Low' | 'Medium' | 'High';
+import type { ProjectStatus, ProjectPriority } from './config';
+
+export type { ProjectStatus, ProjectPriority };
+
+export interface ProjectOwner {
+  name: string;
+  initials: string;
+  avatar?: string;
+}
 
 export interface Project {
   id: string;
@@ -8,11 +15,11 @@ export interface Project {
   description: string;
   status: ProjectStatus;
   priority: ProjectPriority;
-  owner: { name: string; initials: string; avatar?: string };
+  owner: ProjectOwner;
   tags: string[];
   progress: number;
   department: string;
-  preservationScore: number;
+  healthScore: number;
   riskFactor: string;
 }
 
@@ -28,5 +35,5 @@ export interface Metrics {
   totalRecords: number;
   riskLevel: string;
   activeProjects: number;
-  projectsByStatus: Record<ProjectStatus, number>;
+  projectsByStatus: Record<string, number>;
 }

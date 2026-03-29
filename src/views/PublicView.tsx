@@ -1,9 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from '../lib/api';
 import { Project } from '../types';
-import { FolderArchive, ArrowRight, BarChart3, Clock, ShieldCheck } from 'lucide-react';
+import { BarChart3, ArrowRight, ShieldCheck, Clock } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { APP_CONFIG } from '../config';
+import { APP_CONFIG, PROJECT_STATUSES } from '../config';
+
+const launchedStatus = PROJECT_STATUSES[PROJECT_STATUSES.length - 1];
+const intakeStatus = PROJECT_STATUSES[0];
 
 export default function PublicView() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -13,8 +16,7 @@ export default function PublicView() {
     const fetchProjects = async () => {
       try {
         const data = await api.getProjects();
-        // Only show projects that are somewhat active or launched
-        setProjects(data.filter(p => !['Intake / Proposed'].includes(p.status)));
+        setProjects(data.filter(p => p.status !== intakeStatus));
       } catch (error) {
         console.error(error);
       } finally {
@@ -31,14 +33,14 @@ export default function PublicView() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <FolderArchive className="text-white w-4 h-4" />
+              <BarChart3 className="text-white w-4 h-4" />
             </div>
             <div>
               <h1 className="font-headline text-lg font-bold text-brand-dark leading-tight">{APP_CONFIG.portalName}</h1>
               <p className="text-[10px] font-bold uppercase tracking-widest text-slate-500">{APP_CONFIG.subHeading}</p>
             </div>
           </div>
-          <Link 
+          <Link
             to="/login"
             className="text-sm font-medium text-slate-600 hover:text-primary transition-colors flex items-center gap-2"
           >
@@ -72,7 +74,7 @@ export default function PublicView() {
                   <ShieldCheck className="w-6 h-6 text-emerald-300" />
                 </div>
                 <div>
-                  <div className="text-2xl font-bold">{projects.filter(p => p.status === 'Launched').length}</div>
+                  <div className="text-2xl font-bold">{projects.filter(p => p.status === launchedStatus).length}</div>
                   <div className="text-xs text-blue-200 uppercase tracking-wider font-semibold">Successfully Launched</div>
                 </div>
               </div>
@@ -85,7 +87,7 @@ export default function PublicView() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <div className="mb-10">
           <h3 className="text-2xl font-bold text-slate-900 font-headline">Current Portfolio</h3>
-          <p className="text-slate-600 mt-2">An overview of our ongoing and completed AI transformation projects.</p>
+          <p className="text-slate-600 mt-2">An overview of our ongoing and completed {APP_CONFIG.projectLabelPlural.toLowerCase()}.</p>
         </div>
 
         {loading ? (
@@ -102,7 +104,7 @@ export default function PublicView() {
                       {project.department}
                     </span>
                     <span className={`text-xs font-bold px-2 py-1 rounded-md ${
-                      project.status === 'Launched' ? 'bg-emerald-100 text-emerald-800' :
+                      project.status === launchedStatus ? 'bg-emerald-100 text-emerald-800' :
                       project.status === 'In Progress' ? 'bg-amber-100 text-amber-800' :
                       'bg-slate-100 text-slate-800'
                     }`}>
@@ -111,7 +113,7 @@ export default function PublicView() {
                   </div>
                   <h4 className="text-lg font-bold text-slate-900 mb-2">{project.title}</h4>
                   <p className="text-sm text-slate-600 line-clamp-3 mb-6">{project.description}</p>
-                  
+
                   {project.progress > 0 && (
                     <div className="mt-auto">
                       <div className="flex justify-between text-xs font-medium text-slate-500 mb-1.5">
@@ -119,8 +121,8 @@ export default function PublicView() {
                         <span>{project.progress}%</span>
                       </div>
                       <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                        <div 
-                          className={`h-full rounded-full ${project.progress === 100 ? 'bg-emerald-500' : 'bg-primary'}`} 
+                        <div
+                          className={`h-full rounded-full ${project.progress === 100 ? 'bg-emerald-500' : 'bg-primary'}`}
                           style={{ width: `${project.progress}%` }}
                         ></div>
                       </div>
@@ -132,7 +134,7 @@ export default function PublicView() {
                     {project.owner.avatar ? (
                       <img src={project.owner.avatar} alt={project.owner.name} className="w-6 h-6 rounded-full" />
                     ) : (
-                      <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-600">
+                      <div className="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-600" role="img" aria-label={project.owner.name}>
                         {project.owner.initials}
                       </div>
                     )}
@@ -148,12 +150,12 @@ export default function PublicView() {
           </div>
         )}
       </main>
-      
+
       {/* Footer */}
       <footer className="bg-white border-t border-slate-200 py-12 mt-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <div className="flex items-center justify-center space-x-2 mb-4 opacity-50">
-            <FolderArchive className="w-5 h-5 text-slate-900" />
+            <BarChart3 className="w-5 h-5 text-slate-900" />
             <span className="font-headline font-bold text-slate-900">{APP_CONFIG.portalName}</span>
           </div>
           <p className="text-sm text-slate-500">
