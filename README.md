@@ -1,166 +1,216 @@
-# The Digital Archivist - AI Librarian Suite
+# ProjectPulse
 
-The Digital Archivist is a comprehensive Kanban and Portfolio management tool designed for library and archival teams. It provides a public-facing dashboard for stakeholders to track active and launched projects, and a secure internal dashboard for the team to manage the project lifecycle from intake to completion.
+A sleek, open-source project management dashboard with two faces:
 
-## Features
+1. **Public Stakeholder Portal** — A polished, read-only view that tells the story of your work to leadership, clients, or the public.
+2. **Internal Team Dashboard** — A full-featured Kanban board, priority matrix, and portfolio analytics view where your team manages projects behind the scenes.
 
-- **Public Stakeholder Dashboard**: A read-only view of active and launched projects, providing transparency without exposing internal drafts.
-- **Internal Kanban Board**: Drag-and-drop interface for managing projects across different stages (Intake, Active, Launched).
-- **Priority & Portfolio Views**: High-level overviews of project priorities, risk factors, and preservation scores.
-- **Detailed Project Records**: In-depth view of individual projects, including metadata, tags, and a comment thread for team collaboration.
-- **Secure Authentication**: Google Workspace / Gmail authentication via Firebase to protect the internal dashboard.
-- **Real-time Database**: Powered by Firebase Firestore for seamless, real-time updates across all clients.
+Changes made internally are **automatically reflected** on the public portal — no extra publishing step needed.
 
-## Tech Stack
+---
 
-- **Frontend**: React 18, TypeScript, Vite, Tailwind CSS, Lucide React (Icons)
-- **Routing**: React Router v6
-- **Backend & Auth**: Firebase (Firestore, Authentication, Storage)
-- **Deployment**: Google Cloud Run / Firebase Hosting
+## What You Get
 
-## Setup Instructions
+| Feature | Description |
+|---------|-------------|
+| **Kanban Board** | Drag-and-drop cards across customizable workflow stages |
+| **Priority Matrix** | See all projects organized by High / Medium / Low priority |
+| **Portfolio Analytics** | Metrics dashboard with CSV export |
+| **Project Records** | Detailed editing view with comments, tags, and progress tracking |
+| **Public Portal** | Auto-generated stakeholder-facing dashboard |
+| **Google Sign-In** | Secure team login with optional domain restriction |
+| **Real-Time Sync** | Powered by Firebase — changes appear instantly for all users |
+| **Search** | Filter projects across all views by title, owner, tag, or department |
+| **Toast Notifications** | User-friendly success/error feedback for every action |
 
-To run this project locally or deploy it yourself, you will need to set up a Firebase project.
+---
 
-### 1. Clone the Repository
+## Quick Start (Step by Step)
+
+> **Prerequisites:** You need a Google account and a computer with [Node.js](https://nodejs.org/) installed (version 18 or higher). To check, open a terminal and type `node -v`. If you see a version number, you're good.
+
+### Step 1: Download the Code
 
 ```bash
-git clone <repository-url>
-cd digital-archivist
+git clone https://github.com/whuggins-rcll/project-archives.git
+cd project-archives
 ```
 
-### 2. Set up Firebase
+### Step 2: Create a Firebase Project (Free)
 
-1. Go to the [Firebase Console](https://console.firebase.google.com/).
-2. Click **Add project** and follow the prompts to create a new project.
-3. Once the project is created, click the **Web** icon (`</>`) to add a web app to your project.
-4. Register the app (you don't need to set up Firebase Hosting right now).
-5. Copy the `firebaseConfig` object provided.
+Firebase is the free cloud service that stores your data and handles login.
 
-### 3. Configure Authentication
+1. Go to [https://console.firebase.google.com](https://console.firebase.google.com) and sign in with your Google account.
+2. Click **"Create a project"** (or "Add project").
+3. Give it a name (e.g., "My ProjectPulse") and click through the prompts (you can disable Google Analytics if you want — it's optional).
+4. Once the project is created, you'll land on the project dashboard.
 
-1. In the Firebase Console, go to **Authentication** (under Build).
-2. Click **Get Started**.
-3. Go to the **Sign-in method** tab.
-4. Enable **Google** as a sign-in provider and save.
+### Step 3: Add a Web App to Firebase
 
-### 4. Configure Firestore Database
+1. On your Firebase project dashboard, click the **web icon** (`</>`) to add a web app.
+2. Give it a nickname (e.g., "ProjectPulse Web") and click **"Register app"**.
+3. Firebase will show you a block of configuration values. **Keep this page open** — you'll need these values in a moment.
 
-1. In the Firebase Console, go to **Firestore Database** (under Build).
-2. Click **Create database**.
-3. Choose a location and start in **Production mode**.
-4. Go to the **Rules** tab and paste the contents of the `firestore.rules` file from this repository.
+### Step 4: Turn On Google Sign-In
+
+1. In the left sidebar of the Firebase Console, click **Authentication** → **Get started**.
+2. Go to the **"Sign-in method"** tab.
+3. Click **Google**, flip the **Enable** switch, and click **Save**.
+
+### Step 5: Create the Database
+
+1. In the left sidebar, click **Firestore Database** → **Create database**.
+2. Pick a region close to you and select **"Start in production mode"**.
+3. Once created, go to the **Rules** tab.
+4. Delete the existing rules and paste in the contents of the `firestore.rules` file from this project.
 5. Click **Publish**.
 
-### 5. Add Environment Variables
+### Step 6: Configure Environment Variables
 
-Create a file named `.env` in the root of the project and paste your Firebase configuration:
+1. In the project folder, copy the example file:
+   ```bash
+   cp .env.example .env
+   ```
+2. Open `.env` in any text editor and fill in the Firebase values from Step 3:
+   ```env
+   VITE_FIREBASE_API_KEY=AIzaSy...your-key...
+   VITE_FIREBASE_AUTH_DOMAIN=my-projectpulse.firebaseapp.com
+   VITE_FIREBASE_PROJECT_ID=my-projectpulse
+   VITE_FIREBASE_STORAGE_BUCKET=my-projectpulse.appspot.com
+   VITE_FIREBASE_MESSAGING_SENDER_ID=123456789
+   VITE_FIREBASE_APP_ID=1:123456789:web:abc123
+   ```
+3. **Optional — Restrict login to your organization:**
+   If you only want people with a specific email domain (e.g., `@yourcompany.com`) to access the internal dashboard, add:
+   ```env
+   VITE_ALLOWED_DOMAIN=yourcompany.com
+   ```
 
-```env
-VITE_FIREBASE_PROJECT_ID=YOUR_PROJECT_ID
-VITE_FIREBASE_APP_ID=YOUR_APP_ID
-VITE_FIREBASE_API_KEY=YOUR_API_KEY
-VITE_FIREBASE_AUTH_DOMAIN=YOUR_AUTH_DOMAIN
-VITE_FIREBASE_DATABASE_ID=(default)
-VITE_FIREBASE_STORAGE_BUCKET=YOUR_STORAGE_BUCKET
-VITE_FIREBASE_MESSAGING_SENDER_ID=YOUR_MESSAGING_SENDER_ID
+### Step 7: Bootstrap Your First Admin
 
-# Optional: Restrict team login to a specific domain (e.g., yourcompany.com)
-VITE_ALLOWED_DOMAIN=yourcompany.com
-```
+By default, only **admins** can create, edit, and delete projects. To make yourself an admin:
 
-*(Note: The `firebase-applet-config.json` file is ignored by Git to prevent accidentally committing your API keys to GitHub. The application is configured to read from these `.env` variables first.)*
+1. Run the app (next step) and log in with Google.
+2. Go to your Firebase Console → **Firestore Database**.
+3. You'll see a `users` collection doesn't exist yet. Click **"Start collection"** and name it `users`.
+4. Create a new document:
+   - **Document ID**: paste your Firebase User UID (find it under Authentication → Users in the Firebase Console)
+   - **Fields**:
+     - `email` (string): your email address
+     - `role` (string): `admin`
+     - `createdAt` (timestamp): click the clock icon to set the current time
+5. Refresh the app — you now have full admin access.
 
-### 6. Install Dependencies & Run
+### Step 8: Install and Run
 
 ```bash
-# Install dependencies
 npm install
-
-# Start the development server
 npm run dev
 ```
 
-The app will be available at `http://localhost:3000`.
+Open your browser to **http://localhost:5173** (Vite will show the exact URL in the terminal).
 
-## Customizing Branding
+- Visit `/` to see the **public stakeholder portal**
+- Click **"Team Login"** to access the internal dashboard
 
-You can easily customize the software to match your organization's identity colors and naming.
+---
 
-### 1. Update Naming and Text
-Open `src/config.ts` and modify the `APP_CONFIG` object to change the application name, organization name, portal name, and hero text:
+## Customizing for Your Organization
+
+### Change the Name, Text, and Labels
+
+Open `src/config.ts` and edit the `APP_CONFIG` object:
 
 ```typescript
 export const APP_CONFIG = {
-  appName: "Your App Name",
-  orgName: "Your Organization",
-  portalName: "Your Portal Name",
-  // ... other text fields
+  appName: 'ProjectPulse',        // App name shown everywhere
+  orgName: 'Your Organization',   // Shown in the sidebar
+  portalName: 'ProjectPulse',     // Public portal title
+  heroTitle: '...',               // Big headline on the public page
+  heroSubtitle: '...',            // Subtext under the headline
+  projectCodePrefix: 'PP',        // Auto-generated codes like PP-342
+  ownerLabel: 'Lead',             // Label for the project owner
+  departmentLabel: 'Department',  // Label for the department field
+  healthScoreLabel: 'Health Score', // Label for the health metric
+  // ...more options in the file
 };
 ```
 
-### 2. Update Brand Colors
-Open `src/index.css` and modify the CSS variables under the `BRANDING CONFIGURATION` section to match your brand's primary colors:
+### Change the Brand Colors
+
+Open `src/index.css` and update the two CSS variables at the top:
 
 ```css
 :root {
-  --brand-primary: #002045; /* Main primary color */
-  --brand-dark: #1A365D; /* Darker shade for hero backgrounds and dark text */
+  --brand-primary: #002045;  /* Your primary brand color */
+  --brand-dark: #1A365D;     /* Darker shade for hero sections */
 }
 ```
 
-## Restricting Team Login Domain
+### Customize the Workflow Stages
 
-To ensure that only users from your organization can access the internal dashboard, you can restrict the Google Sign-In to a specific domain (e.g., `law.stanford.edu`).
+Open `src/config.ts` and modify the `WORKFLOW_STAGES` array. The Kanban board columns, status dropdowns, and all views will update automatically:
 
-1. Set the `VITE_ALLOWED_DOMAIN` environment variable in your `.env` file (and in Vercel).
-2. The login screen will automatically prompt Google to only allow accounts from that domain.
-3. If a user bypasses the UI and logs in with a different domain, the application will immediately sign them out and show an error message.
+```typescript
+export const WORKFLOW_STAGES = [
+  { key: 'backlog',  label: 'Backlog',        color: '...', border: '...' },
+  { key: 'todo',     label: 'To Do',          color: '...', border: '...' },
+  { key: 'doing',    label: 'In Progress',    color: '...', border: '...' },
+  { key: 'review',   label: 'In Review',      color: '...', border: '...' },
+  { key: 'done',     label: 'Done',           color: '...', border: '...' },
+];
+```
 
-## Bootstrapping the First Admin
+---
 
-By default, the Firestore security rules restrict project creation and modification to **Admins**. 
+## Deploying to the Web (Vercel — Free)
 
-To bootstrap your first admin account:
-1. Open `firestore.rules`.
-2. Locate the `isAdmin()` function.
-3. Change the hardcoded email (`whuggins@law.stanford.edu`) to your Google account email.
-4. Deploy the rules to Firestore.
-5. Log in to the app using that Google account. You will now have admin privileges and can create projects.
+[Vercel](https://vercel.com) is the easiest way to put this on the internet for free.
 
-## Deploying to Vercel
+1. Push your code to a GitHub repository.
+2. Go to [vercel.com](https://vercel.com), sign in with GitHub, and click **"Add New Project"**.
+3. Import your repository. Vercel will auto-detect it as a Vite project.
+4. Under **Environment Variables**, add the same `VITE_*` values from your `.env` file.
+5. Click **Deploy**.
 
-The easiest way to deploy this application is using [Vercel](https://vercel.com).
+**After deployment:** Copy your live URL (e.g., `https://my-app.vercel.app`) and add it to your Firebase Console under **Authentication → Settings → Authorized domains**. Without this step, Google Sign-In won't work on the live site.
 
-1. Push your customized code to a GitHub repository.
-2. Log in to Vercel and click **Add New... > Project**.
-3. Import your GitHub repository.
-4. Vercel will automatically detect that it is a Vite project. Ensure the following build settings are set:
-   - **Framework Preset**: Vite
-   - **Build Command**: `npm run build`
-   - **Output Directory**: `dist`
-5. **Environment Variables**: Add your Firebase configuration in the Vercel Environment Variables section:
-   - `VITE_FIREBASE_PROJECT_ID`
-   - `VITE_FIREBASE_APP_ID`
-   - `VITE_FIREBASE_API_KEY`
-   - `VITE_FIREBASE_AUTH_DOMAIN`
-   - `VITE_FIREBASE_DATABASE_ID`
-   - `VITE_FIREBASE_STORAGE_BUCKET`
-   - `VITE_FIREBASE_MESSAGING_SENDER_ID`
-   - `VITE_ALLOWED_DOMAIN` (Optional: e.g., yourcompany.com)
-6. Click **Deploy**.
-
-**Important Post-Deployment Step:** Once Vercel provides your live production URL (e.g., `https://your-app.vercel.app`), you must add this domain to your Firebase Authentication **Authorized domains** list in the Firebase Console (under Authentication > Settings > Authorized domains) so that Google Sign-In works correctly.
+---
 
 ## Project Structure
 
-- `/src/components`: Reusable UI components (Sidebar, Topbar, Modals).
-- `/src/views`: Main page views (Kanban, Portfolio, Public Dashboard, Login).
-- `/src/lib`: Utility functions and Firebase initialization (`firebase.ts`, `api.ts`).
-- `/src/types.ts`: TypeScript interfaces for the data models.
-- `firebase-blueprint.json`: A schema definition of the Firestore database structure.
-- `firestore.rules`: The security rules for the Firestore database.
+```
+src/
+├── config.ts          # All branding, labels, and workflow configuration
+├── types.ts           # TypeScript interfaces (auto-derived from config)
+├── App.tsx            # Root component, routing, and auth
+├── components/
+│   ├── Sidebar.tsx    # Navigation sidebar
+│   ├── Topbar.tsx     # Header bar with search and user profile
+│   └── Toast.tsx      # Toast notification system
+├── views/
+│   ├── PublicView.tsx  # Stakeholder portal (no login required)
+│   ├── LoginView.tsx   # Google Sign-In page
+│   ├── KanbanView.tsx  # Drag-and-drop project board
+│   ├── PriorityView.tsx # Priority matrix view
+│   ├── PortfolioView.tsx # Analytics dashboard with CSV export
+│   └── RecordView.tsx  # Detailed project editor with comments
+└── lib/
+    ├── firebase.ts    # Firebase initialization
+    └── api.ts         # Database operations (Firestore CRUD)
+```
+
+---
+
+## Tech Stack
+
+- **React 19** + **TypeScript** + **Vite** (frontend)
+- **Tailwind CSS 4** (styling)
+- **Firebase** (database, auth, storage)
+- **Lucide React** (icons)
+
+---
 
 ## License
 
-SPDX-License-Identifier: Apache-2.0
+Apache-2.0

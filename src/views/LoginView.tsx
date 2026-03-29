@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FolderArchive, LogIn } from 'lucide-react';
+import { BarChart3, LogIn } from 'lucide-react';
 import { signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
 import { auth } from '../lib/firebase';
 import { APP_CONFIG } from '../config';
@@ -16,7 +16,7 @@ export default function LoginView() {
     try {
       const provider = new GoogleAuthProvider();
       const allowedDomain = import.meta.env.VITE_ALLOWED_DOMAIN;
-      
+
       if (allowedDomain) {
         provider.setCustomParameters({
           hd: allowedDomain
@@ -24,16 +24,17 @@ export default function LoginView() {
       }
 
       const result = await signInWithPopup(auth, provider);
-      
+
       if (allowedDomain && result.user.email && !result.user.email.endsWith(`@${allowedDomain}`)) {
         await signOut(auth);
         throw new Error(`Access restricted to @${allowedDomain} accounts.`);
       }
 
       navigate('/app');
-    } catch (err: any) {
-      console.error('Login failed:', err);
-      setError(err.message || 'Failed to log in with Google.');
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : 'Failed to log in with Google.';
+      console.error('Login failed:', message);
+      setError(message);
     } finally {
       setIsLoading(false);
     }
@@ -44,7 +45,7 @@ export default function LoginView() {
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
           <div className="w-12 h-12 bg-primary rounded-xl flex items-center justify-center shadow-lg">
-            <FolderArchive className="text-white w-6 h-6" />
+            <BarChart3 className="text-white w-6 h-6" />
           </div>
         </div>
         <h2 className="mt-6 text-center text-3xl font-extrabold text-slate-900 font-headline">
@@ -65,11 +66,11 @@ export default function LoginView() {
             <LogIn className="w-5 h-5" />
             {isLoading ? 'Signing in...' : 'Sign in with Google'}
           </button>
-          
-          {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
-          
+
+          {error && <p className="mt-4 text-sm text-red-600" role="alert">{error}</p>}
+
           <div className="mt-6 text-center">
-            <button 
+            <button
               onClick={() => navigate('/')}
               className="text-sm text-slate-500 hover:text-primary transition-colors"
             >
