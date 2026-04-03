@@ -33,8 +33,8 @@ export const RISK_FACTORS = ['Low', 'Medium', 'High', 'Stable'] as const;
 // ─── Branding & Text ─────────────────────────────────────────────────────────
 export const APP_CONFIG = {
   // Core identity
-  appName: 'ProjectPulse',
-  orgName: 'Your Organization',
+  appName: 'SJSU Library AI',
+  orgName: 'SJSU Library',
   portalName: 'ProjectPulse',
   subHeading: 'Stakeholder Portal',
 
